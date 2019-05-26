@@ -1,8 +1,10 @@
 import React, { Component } from 'react';
-import { View,ToastAndroid } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { Text, Button, View, ToastAndroid } from 'react-native';
 
+import { WebView } from 'react-native-webview';
 import Modal from "react-native-modal";
+import { TextField } from 'react-native-material-textfield';
+import DateTimePicker from "react-native-modal-datetime-picker";
 
 WebView.isFileUploadSupported().then(res => {
     if (res === true) {
@@ -11,44 +13,55 @@ WebView.isFileUploadSupported().then(res => {
     } else {
         // File upload is not support
         ToastAndroid.show('File upload is NOT support', ToastAndroid.LONG);
+        //ToastAndroid.show('A pikachu appeared nearby !', ToastAndroid.SHORT);
     }
 });
 
 export default class App extends Component {
-    _webview = null;
+    constructor(props) {
+        super(props);
 
+        _webview = null;
 
-    state = {
-        isModalVisible: true
-    };
+        this.state = {
+            isDateTimePickerVisible: false,
+            isModalVisible: false,
+            phone: '',
+        };
+    }
 
     toggleModal = () => {
         this.setState({ isModalVisible: !this.state.isModalVisible });
     };
 
-    //ToastAndroid.show('A pikachu appeared nearby !', ToastAndroid.SHORT);
-    //ToastAndroid.show('A pikachu appeared nearby !', ToastAndroid.LONG);
-
-    //render() {
-    //    return (
-    //        <View style={{ flex: 1 }}>
-    //            <Button title="Show modal" onPress={this.toggleModal} />
-    //            <Modal isVisible={this.state.isModalVisible}>
-    //                <View style={{ flex: 1 }}>
-    //                    <Text>Hello!</Text>
-    //                    <Button title="Hide modal" onPress={this.toggleModal} />
-    //                </View>
-    //            </Modal>
-    //        </View>
-    //    );
-    //}
-
     fn_onListenerMessageFromUI = (event) => {
-        ToastAndroid.show('UI->RN: ' + event.data, ToastAndroid.SHORT);
-        this._webview.injectJavaScript('alert("RN->UI: ' + event.data + '")');
+        let data = event.data;
+
+        if (data == 'POPUP') {
+            this.toggleModal();
+        } else {
+            ToastAndroid.show('UI->RN: ' + data, ToastAndroid.SHORT);
+            this._webview.injectJavaScript('alert("RN->UI: ' + data + '")');
+        }
     }
 
+    showDateTimePicker = () => {
+        this.setState({ isDateTimePickerVisible: true });
+    };
+
+    hideDateTimePicker = () => {
+        this.setState({ isDateTimePickerVisible: false });
+    };
+
+    handleDatePicked = date => {
+        console.log("A date has been picked: ", date);
+        ToastAndroid.show('SELECT_DATE: ' + String(date), ToastAndroid.SHORT);
+        this.hideDateTimePicker();
+    };
+
+
     render() {
+        let { phone } = this.state;
 
         const runFirst = `
           document.body.style.backgroundColor = 'red';
@@ -57,7 +70,7 @@ export default class App extends Component {
         `;
 
         const run = `
-          document.body.style.backgroundColor = 'blue';
+          document.body.style.backgroundColor = 'orange';
           true;
         `;
 
@@ -78,7 +91,31 @@ export default class App extends Component {
                     ref={r => (this._webview = r)}
                     onMessage={event => { this.fn_onListenerMessageFromUI(event.nativeEvent) }}
 
-                    source={{ uri: 'http://192.168.0.101/' }}/>
+                    source={{ uri: 'http://192.168.0.101/' }}
+                />
+                <Modal
+                    isVisible={this.state.isModalVisible}
+                    backdropColor={'white'}
+                    backdropOpacity={1}
+                    style={{ margin: 10 }}>
+                    <View style={{ flex: 1 }}>
+                        <Text>Hello!</Text>
+                        <Button title="Show DatePicker" onPress={this.showDateTimePicker} />
+                        <DateTimePicker
+                            isVisible={this.state.isDateTimePickerVisible}
+                            onConfirm={this.handleDatePicked}
+                            onCancel={this.hideDateTimePicker}
+                        />
+                        <TextField
+                            label='Phone number'
+                            value={phone}
+                            onChangeText={(phone) => this.setState({ phone })}
+                        />
+
+
+                        <Button title="Hide modal" onPress={this.toggleModal} />
+                    </View>
+                </Modal>
             </View>
         )
     }
